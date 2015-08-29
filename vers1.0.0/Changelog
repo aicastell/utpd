@@ -1,0 +1,35 @@
+
+2011-05-14
+    * Circular queue syncronization problems fixed
+    * Version 0.1.0 released
+    * Close and shutdown syscalls refactorized
+    * Unified all memset/bzero, replaced with bzero
+    * Version 0.0.9 released
+
+2011-05-11
+    * Remove item from the queue when recv returns 0 from TCP server
+    * socklen_t structures properly initialized
+    * Logs improved with UDP client IP and port
+
+2011-05-07
+    * printf replaced with fprintf to enable flushing
+    * second level of verbose for debugging purposes
+    * Version 0.0.7 released
+    * Version 0.0.8 released
+
+2011-05-06
+    * UDP server socket is local to the main thread (lock-free), and each
+      working thread has a local UDP socket to send back the response to
+      the UDP client.
+    * Easier lock-free queue balancing
+
+2011-05-03
+    * Version 0.0.6 released
+    * Connection retry parameter
+
+2011-04-30
+    * Version 0.0.5 released
+    * Remote TCP port parameter
+    * Remote IPv4 address
+    * Modified script /etc/init.d/utpd.sh with start-stop-daemon
+

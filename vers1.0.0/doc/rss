@@ -1,0 +1,175 @@
+
+Especificación del software enviada por el cliente
+==============================================================================
+
+== Idea inicial ==
+
+Los clientes podemos emularlos con "netcat". Lo único es si podrías
+aprovechar y hacer que cada thread que consuma de la cola de paquetes
+UDP recibidos realice a su vez una peticón TCP a otro servidor y
+devuelva como respuesta la respuesta del servidor final en lugar del
+string original. Lo digo porque así ya sería funcional del todo...
+
+La secuencia "real" sería:
+
+    1.- El servidor escucha en el puerto UDP 2011.
+    2.- Llega un datagrama UDP con el campo de datos:
+
+    "GET /blablabla HTTP/1.0\n\n"
+
+    3.- El servidor abre un socket TCP al puerto 80 del servidor final
+    y envía:
+
+    "GET /blablabla HTTP/1.0\n\n"
+
+    4.- El servidor recibe la respuesta por TCP
+    5.- El servidor renvia la respuesta (solo el cuerpo del mensaje HTTP)
+    por el socket UDP al cliente original.
+
+Sería como un "proxy" UDP/TCP
+
+    Cliente ---UDP [datos1]---> Proxy ---TCP [datos1]---> Servidor HTTP
+    Cliente <--UDP [datos3]---  Proxy <--TCP [datos2]---  Servidor HTTP
+
+donde:
+
+    datos1
+    Los datos que le llegan al servidor HTTP son los originales del campo
+    de datos UDP
+
+    datos2
+    Es la repuesta HTTP del servidor
+
+    datos3
+    Es la respuesta filtrada del Proxy
+
+De la respuesta del servidor HTTP (datos2) se devuelve al cliente UDP solo
+el cuerpo del mensaje, no las cabeceras. Es decir (datos2) tendrá un formato
+tal que:
+
+    HTTP/1.1 200 OK
+    [más cabeceras...]
+    Content-Type: text/tab-separated-values
+    Connection: close
+    Content-Length: 8
+
+    value    1
+
+Lo que nos interesa es el body del mensaje, en este caso "value 1" (datos3).
+Siempre será un string de este estilo. Es lo que el proxy UDP/TCP debería
+filtrar en la respuesta antes de devolverlo por el socket UDP al cliente.
+
+
+
+== Justificacion del por que de este software ==
+
+Un proxy UDP/TCP tiene varias utilidades dentro del modelo de arquitectura que
+tenemos pensado montar. Tenemos dos medios:
+
+    Internet
+    nuestra red local.
+
+El primero es un entorno no confiable, difícil de controlar, el segundo está
+bajo nuestro dominio. Como ya sabes, UDP tiene la ventaja frente a TCP de que
+permite enviar datos, sin necesidad del 3-hand shake, y por lo tanto no hay
+que controlar el estado, es "stateless" y consume muchos menos recursos en el
+host que recibe los datos. En nuestra arquitectura, UDP puede emplearse para
+que algunos clientes lo usen desde Internet -como método PULL-, como protocolo
+para determinar si tienen o no nuevos mensajes. Si el paquete UDP se pierde o
+no llega, nos da igual, el cliente volverá a enviarlo. Sin embargo cuando
+llega a nuestra red local (el ISP donde tendremos el hosting y nuestro
+servidor/es), podemos necesitar procesar los paquetes con fiabilidad, por
+ello, la necesidad de pasar a TCP. Con UDP, los clientes malintencionados,
+no pueden abrir conexiones ilimitadas, como mucho pueden hacer un flood,
+pero eso ya lo solucionamos a nivel de cortafuegos. El problema del spoofing
+de UDP, puede aliviarse mediante el empleo de un canal lateral via TCP que
+valida la IP de origen.
+
+Es decir tu proxy UDP/TCP nos permitirá establecer un mecanismo de
+comunicación continua entre algunos clientes y nuestro servidor sin que
+dicha comunicación afecte al rendimiento del backend tanto como lo haría
+si fuera a través de TCP exclusivamente. Y por otro lado, no tenemos que
+preocuparnos por saber si el cliente se ha "muerto" y nos deja una conexión
+a medias, ya que solo nos preocuparemos por nuestro extremo.
+
+
+
+== Detalles sobre las conexiones ==
+
+Los datos encapsulados, pueden llevar cualquier cosa, lo que pasa es que
+aprovecharemos y meteremos HTTP. Al proxy udp-tcp le llega una trama UDP
+tal que:
+
+    IP origen: cliente
+    IP destino: proxy UDP-TCP
+    Puerto origen: El que sea
+    Puerto Destino: En el que escucha el proxy UDP-TCP
+    Datos: Tengo mensajes?
+
+Sobre esta duda:
+
+    - La unica forma de saber a quien hay que enviar ese campo de datos es
+    de la primera linea del paquete UDP (parseando la linea con el formato
+    que te he enviado).
+    - El servidor extrae de esa primera linea esa información
+    (www.google.com <http://www.google.com>), y se reenvian los datos al
+    servidor correspondiente.
+
+El cliente responde:
+
+No hace falta hacer lo que dices tú, eso es lo que hace un proxy HTTP
+convencional, pero lo tuyo no es un proxy HTTP. El destino final es fijo
+(se lo fijas al proxy udp-tcp en la línea de comandos) y el origen lo
+sacas de la trama UDP. Es decir, el proxy udp-tcp, cuando recibe la
+trama UDP debe:
+
+    1. Guardar información sobre IP/puerto de origen (cliente) de la trama
+    UDP (ojo, NO del campo de datos.
+    2. Abrir un socket TCP contra el destino final
+    3. Enviar por el socket el contenido del campo de datos de la trama UDP.
+    4. Recibir por el mismo socket TCP la respuesta del servidor final
+    5. Devolver a la IP/puerto de origen (Cliente) la respuesta obtenida
+    del socket TCP metido en el campo de datos de la trama UDP.
+
+El proxy UDP-TCP debe ser agnóstico sobre lo que va dentro del campo de datos.
+
+
+
+== Sobre el parametro adicional de destino ==
+
+Necesitamos un demonio que traduzca UDP a TCP y viceversa. Que usaremos HTTP
+en el campo de datos, sí claro, es un protocolo que conocemos y podemos
+interactuar con servidores web, para qué reinventar la rueda, pero eso no
+tiene nada que ver con tu demonio, no te debe preocupar. Ya sabemos las
+limitaciones que tendremos, por ejemplo,  no podremos usar
+
+    Connection: keep-alive
+
+ya que eso implica tener un socket abierto... Pero podemos hacer peticiones
+simples con
+
+    Connection: close
+
+Pero, es que además, puede que usemos algo que no sea HTTP, por ejemplo, en
+el campo de datos del datagrama UDP puede ir simplemente un string como este
+"5b6b63c5824c0c5444427a0ab0de464c". A ver como parseas eso... no puedes pensar
+en HTTP. El servidor final, será el que sepa tratar la información.
+
+La información del destino final será única para cada instancia de tu demonio.
+
+Sería algo así como lanzar utpd tal que:
+
+    ./utpd -destino=127.0.0.1:4444 -otros parámetros...
+
+En este ejemplo en concreto, tendríamos en el puerto 4444 de la máquina local
+un demonio -que puede o no, ser un servidor web- escuchando.
+
+El cliente envía el siguiente datagrama UDP:
+
+    IP Origen     Puerto Origen   IP Destino     Puerto destino   Datos
+    55.55.55.55   1024            proxy-UDP-TCP  2011             Helloworld
+
+El servidor final, procesará esa información y devolverá la respuesta que sea.
+A tí te da igual si es HTTP.
+
+EOF

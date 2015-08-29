@@ -1,0 +1,15 @@
+
+    - Permitir salida del bucle principal while(1) vía signal SIGUSR1
+
+    - ¿Qué pasa si el tiempo definido en "-a" es menor del tiempo de
+      respuesta del servidor final... ¿Podría darse la situación de
+      que una respuesta del servidor final a un cliente "X" fuera
+      procesada por el utpd como respuesta a un cliente "Y"....?
+
+      Pues buena pregunta... ciertamente no había pensado en ese caso
+      y creo que no funcionaría bien. De momento lo anoto en la lista
+      de tareas pendientes.
+
+    - Tener en cuenta que el cliente UDP netcat no funciona como seria
+      de esperar y estamos simulando con ping_udp en develex/sockets
+

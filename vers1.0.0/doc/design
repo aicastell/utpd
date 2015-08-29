@@ -1,0 +1,78 @@
+
+
+== Diseño del servidor ==
+
+Tenemos una cola circular de peticiones por cada uno de los n hilos:
+
+                +---+---+---+---+
+                |t1 |t7 |t8|    |  Thread1
+             /  +---+---+---+---+
+            |
+            |   +---+---+---+---+
+t7 t8 t9 ---+-> |t2 |t4 |t9|    |  Thread2
+            |   +---+---+---+---+
+            |
+            |   ...
+            |
+             \  +---+---+---+---+
+                |t3 |t5 |t6 |   |  Threadn
+                +---+---+---+---+
+
+El hilo principal se encargara de:
+
+    - recibir las conexiones de los clientes
+    - encolar la peticion en la cola i = (i + 1) % n
+
+Este algoritmo garantiza un reparto equitativo de carga entre los
+distintos hilos, maximizando el rendimiento del sistema.
+
+El Threadi realiza este trabajo con su propia cola de tareas:
+
+    - Se bloquea hasta que recibe el primer item en su cola
+    - Si hay alguna tarea disponible, extrae la tarea (tj)
+    - Envia tj al servidor TCP
+    - Espera respuesta del servidor TCP durante un tiempo
+    - Si recibe respuesta, la envia de vuelta al cliente UDP
+    - En cualquier caso, elimina de su cola la tarea tj
+    - Si hay mas tareas en su cola, continua con la siguiente
+
+Los parametros configurables son estos:
+
+    g_verbose
+        incrementar verbose para debug (de momento hay un solo
+        nivel, aunque se aumentará a medida que sea necesario)
+
+    g_daemon
+        lanzar servidor como demonio en background
+
+    g_port_udp
+        puerto usado por el servidor UDP para recibir las
+        conexiones de los clientes UDP
+
+    g_nr_threads
+        maximo numero de hilos lanzados de manera concurrente,
+        cada uno de los cuales tiene una cola de conexiones
+        asociada
+
+    g_queue_size
+        numero maximo de items en cada cola antes de que se
+        empiecen a descartar conexiones UDP
+
+    g_ipaddr_tcp
+        direccion IP del servidor TCP al que deben reenviarse
+        las peticiones de los clientes UDP
+
+    g_port_tcp
+        puerto usado por el servidor TCP al que deben reenviarse
+        las peticiones de los clientes UDP
+
+    g_timeout_tcp
+        tiempo maximo (sec) que el threadi espera respuesta del
+        servidor TCP antes de descartar la conexion y pasar a
+        procesar la siguiente tarea de la cola
+
+    g_tcp_conn_retry
+        tiempo que se espera el threadi a reintentar la conexion
+        con el servidor TCP si esta cae por cualquier motivo
+
+
