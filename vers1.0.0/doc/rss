@@ -157,9 +157,9 @@ en HTTP. El servidor final, será el que sepa tratar la información.
 
 La información del destino final será única para cada instancia de tu demonio.
 
-Sería algo así como lanzar utpd tal que:
+Sería algo así como lanzar wheebop tal que:
 
-    ./utpd -destino=127.0.0.1:4444 -otros parámetros...
+    ./wheebop -destino=127.0.0.1:4444 -otros parámetros...
 
 En este ejemplo en concreto, tendríamos en el puerto 4444 de la máquina local
 un demonio -que puede o no, ser un servidor web- escuchando.

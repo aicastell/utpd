@@ -31,5 +31,5 @@
     * Version 0.0.5 released
     * Remote TCP port parameter
     * Remote IPv4 address
-    * Modified script /etc/init.d/utpd.sh with start-stop-daemon
+    * Modified script /etc/init.d/wheebop.sh with start-stop-daemon
 

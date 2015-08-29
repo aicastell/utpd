@@ -1,8 +1,8 @@
 #! /bin/sh
 #
-# Start and stop utpd server
+# Start and stop wheebop server
 
-NAME=utpd
+NAME=wheebop
 DAEMON=/usr/bin/$NAME
 DAEMON_ARGS="-d -v"
 
