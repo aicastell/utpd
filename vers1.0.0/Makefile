@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-W -Wall -Winline -ggdb3
-TARGET=wheebop
-OBJS=error.o wheebop.o queue.o queue_item.o
+TARGET=utpd
+OBJS=error.o utpd.o queue.o queue_item.o
 LIBS=-lpthread
 
 %.o: %.c
@@ -20,7 +20,7 @@ test_queue:
 	$(CC) queue.o queue_item.o test_queue.o error.o -o test_queue
 
 install:
-	sudo cp wheebop /usr/bin
+	sudo cp utpd /usr/bin
 	sudo chmod 755 /usr/bin/$(TARGET)
 	sudo strip /usr/bin/$(TARGET)
 	sudo cp -Rfa etc /

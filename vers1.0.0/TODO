@@ -4,7 +4,7 @@
     - ¿Qué pasa si el tiempo definido en "-a" es menor del tiempo de
       respuesta del servidor final... ¿Podría darse la situación de
       que una respuesta del servidor final a un cliente "X" fuera
-      procesada por el wheebop como respuesta a un cliente "Y"....?
+      procesada por el utpd como respuesta a un cliente "Y"....?
 
       Pues buena pregunta... ciertamente no había pensado en ese caso
       y creo que no funcionaría bien. De momento lo anoto en la lista
